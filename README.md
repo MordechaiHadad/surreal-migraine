@@ -17,13 +17,14 @@ Usage
 
 ```powershell
 # numeric (auto-increment)
-surreal-migraine add "Create users"
+# either binary name can be used: `smg` or `surrealdb-migraine`
+smg add "Create users"
 
 # temporal (timestamped)
-surreal-migraine add --temporal "Add audit table"
+surrealdb-migraine add --temporal "Add audit table"
 
 # specify directory and increase verbosity
-surreal-migraine add --dir ./migrations -v "Fix schema"
+smg add --dir ./migrations -v "Fix schema"
 ```
 
 CLI quick reference
@@ -32,6 +33,20 @@ CLI quick reference
 - `--temporal` / `-t` — use timestamp prefix instead of numeric.
 - `--dir <DIR>` — override migrations directory (defaults to ./migrations).
 - `-v, -vv` — increase logging verbosity (debug/trace).
+
+Notes on binary names
+
+- The project provides two executable names that point to the same CLI: `smg` and `surrealdb-migraine`.
+- If you install from crates.io with `cargo install surreal-migraine`, Cargo will install the crate's binaries (both `smg` and `surrealdb-migraine` when available).
+- To install a specific binary from the local checkout:
+
+```powershell
+# install only `smg` from the current path
+cargo install --path . --bin smg
+
+# install only `surrealdb-migraine`
+cargo install --path . --bin surrealdb-migraine
+```
 
 Notes
 
