@@ -2,6 +2,10 @@
 name = "surreal-migraine"
 version = "0.1.0"
 edition = "2024"
+description = "Small CLI to create SurrealDB migration files with numeric or temporal prefixes."
+license = "MIT"
+readme = "README.md"
+repository = "https://github.com/MordechaiHadad/surreal-migraine"
 
 [dependencies]
 chrono = "0.4.41"
