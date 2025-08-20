@@ -191,10 +191,10 @@ mod migrations_impl {
         /// Record a migration as applied by creating a record in `migrations`.
         async fn record_migration(&self, name: &str) -> Result<()> {
             let content = json!({ "name": name });
-            let _: Option<Record> = self
+            let _ = self
                 .db
-                .create("migrations")
-                .content(content)
+                .query("CREATE migrations CONTENT $content")
+                .bind(("content", content))
                 .await
                 .map_err(|e| eyre::eyre!(e.to_string()))?;
             Ok(())
@@ -205,11 +205,6 @@ mod migrations_impl {
     pub struct Migration {
         pub name: String,
         pub path: Box<Path>,
-    }
-
-    #[derive(Deserialize, Debug)]
-    struct Record {
-        id: RecordId
     }
 
 }
