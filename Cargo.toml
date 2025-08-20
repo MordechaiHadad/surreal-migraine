@@ -1,6 +1,6 @@
 [package]
 name = "surreal-migraine"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2024"
 description = "Small CLI to create SurrealDB migration files with numeric or temporal prefixes."
 license = "MIT"
@@ -28,9 +28,3 @@ tempfile = "3.20.0"
 [[bin]]
 name = "smg"
 path = "src/main.rs"
-
-[[bin]]
-name = "surrealdb-migraine"
-path = "src/main.rs"
-
-
