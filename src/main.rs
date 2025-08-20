@@ -32,12 +32,23 @@ fn main() -> Result<()> {
     match args.command {
         Commands::Add(a) => {
             let dir = fs::detect_or_create_migrations_dir(a.dir)?;
-            if a.temporal {
-                let path = fs::create_temporal_migration(&dir, &a.name)?;
-                tracing::info!("created {}", path.display());
+            // Paired folder (with up/down) is the default. Use --single to
+            // create a single .surql file instead, preserving temporal or numeric mode.
+            if a.single {
+                if a.temporal {
+                    let path = fs::create_temporal_migration(&dir, &a.name)?;
+                    tracing::info!("created {}", path.display());
+                } else {
+                    let path = fs::create_numeric_migration(&dir, &a.name)?;
+                    tracing::info!("created {}", path.display());
+                }
             } else {
-                let path = fs::create_numeric_migration(&dir, &a.name)?;
-                tracing::info!("created {}", path.display());
+                let path = if a.temporal {
+                    fs::create_temporal_paired_migration(&dir, &a.name)?
+                } else {
+                    fs::create_numeric_paired_migration(&dir, &a.name)?
+                };
+                tracing::info!("created paired migration {}", path.display());
             }
         }
     }

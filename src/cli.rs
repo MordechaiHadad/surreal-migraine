@@ -23,6 +23,10 @@ pub struct AddArgs {
     #[arg(short, long)]
     pub temporal: bool,
 
+    /// Create a single migration file instead of the default paired folder
+    #[arg(long)]
+    pub single: bool,
+
     /// Override migrations directory
     #[arg(long)]
     pub dir: Option<PathBuf>,

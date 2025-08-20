@@ -6,7 +6,7 @@ use tempfile::tempdir;
 #[test]
 fn numeric_add_creates_000() {
     let dir = tempdir().unwrap();
-    let mut cmd = Command::cargo_bin("surreal-migraine").unwrap();
+    let mut cmd = Command::cargo_bin("smg").unwrap();
     cmd.args([
         "add",
         "init_migration",
@@ -29,7 +29,7 @@ fn numeric_add_creates_000() {
 #[test]
 fn temporal_add_creates_timestamped() {
     let dir = tempdir().unwrap();
-    let mut cmd = Command::cargo_bin("surreal-migraine").unwrap();
+    let mut cmd = Command::cargo_bin("smg").unwrap();
     cmd.args([
         "add",
         "create_users",
@@ -57,7 +57,7 @@ fn numeric_collision_increments() {
     File::create(dir.path().join("000_foo.surql")).unwrap();
     File::create(dir.path().join("001_bar.surql")).unwrap();
 
-    let mut cmd = Command::cargo_bin("surreal-migraine").unwrap();
+    let mut cmd = Command::cargo_bin("smg").unwrap();
     cmd.args(["add", "new_mig", "--dir", dir.path().to_str().unwrap()]);
     cmd.assert().success();
 
@@ -71,7 +71,7 @@ fn numeric_collision_increments() {
 #[test]
 fn invalid_name_errors() {
     let dir = tempdir().unwrap();
-    let mut cmd = Command::cargo_bin("surreal-migraine").unwrap();
+    let mut cmd = Command::cargo_bin("smg").unwrap();
     // name with only invalid chars -> sanitized empty
     cmd.args(["add", "\"<>|", "--dir", dir.path().to_str().unwrap()]);
     cmd.assert()

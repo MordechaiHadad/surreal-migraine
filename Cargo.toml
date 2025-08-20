@@ -1,11 +1,12 @@
 [package]
 name = "surreal-migraine"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 description = "Small CLI to create SurrealDB migration files with numeric or temporal prefixes."
 license = "MIT"
 readme = "README.md"
 repository = "https://github.com/MordechaiHadad/surreal-migraine"
+default-run = "smg"
 
 [dependencies]
 chrono = "0.4.41"
@@ -15,6 +16,9 @@ eyre = "0.6.12"
 regex = "1.11.1"
 tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
+surrealdb = { version = "2.3.7", default-features = false }
+serde_json = { version = "1.0" }
+serde = { version = "1.0", features = ["derive"] }
 
 [dev-dependencies]
 assert_cmd = "2.0.17"
@@ -28,3 +32,5 @@ path = "src/main.rs"
 [[bin]]
 name = "surrealdb-migraine"
 path = "src/main.rs"
+
+

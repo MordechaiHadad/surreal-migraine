@@ -16,15 +16,20 @@ cargo build --release
 Usage
 
 ```powershell
-# numeric (auto-increment)
+# numeric paired (default) — creates a folder with up/down
 # either binary name can be used: `smg` or `surrealdb-migraine`
 smg add "Create users"
 
-# temporal (timestamped)
+# temporal paired (default)
 surrealdb-migraine add --temporal "Add audit table"
 
 # specify directory and increase verbosity
 smg add --dir ./migrations -v "Fix schema"
+
+# Single-file mode (legacy behavior)
+# Use `--single` to create a single `.surql` file instead of a paired folder
+smg add --single "Create users"
+surrealdb-migraine add --single --temporal "Add index"
 ```
 
 CLI quick reference

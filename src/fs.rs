@@ -108,3 +108,72 @@ pub fn create_temporal_migration(dir: &Path, name: &str) -> Result<PathBuf> {
     let _ = f.write_all(header.as_bytes());
     Ok(path)
 }
+
+/// Create a numeric "paired" migration as a folder containing `up.surql` and `down.surql`.
+/// Returns the path to the created folder.
+pub fn create_numeric_paired_migration(dir: &Path, name: &str) -> Result<PathBuf> {
+    let sanitized = sanitize_name(name);
+    if sanitized.is_empty() {
+        return Err(eyre!("sanitized name is empty"));
+    }
+    let mut n = next_numeric_prefix(dir)?;
+    for _ in 0..1000 {
+        let foldername = format!("{n:03}_{sanitized}");
+        let path = dir.join(&foldername);
+        match fs::create_dir(&path) {
+            Ok(()) => {
+                // create up.surql and down.surql
+                let up_path = path.join("up.surql");
+                let down_path = path.join("down.surql");
+                let header = format!(
+                    "-- migration: {name}\n-- created: {now}\n",
+                    name = name,
+                    now = Local::now()
+                );
+                let mut f_up = File::create(&up_path)?;
+                let _ = f_up.write_all(header.as_bytes());
+                let mut f_down = File::create(&down_path)?;
+                let _ = f_down.write_all(header.as_bytes());
+                return Ok(path);
+            }
+            Err(e) => {
+                // If already exists, increment and try again
+                if e.kind() == std::io::ErrorKind::AlreadyExists {
+                    n += 1;
+                    continue;
+                }
+                return Err(eyre!(e));
+            }
+        }
+    }
+    Err(eyre!("failed to create unique numeric paired migration after retries"))
+}
+
+/// Create a temporal "paired" migration as a folder containing `up.surql` and `down.surql`.
+/// Returns the path to the created folder.
+pub fn create_temporal_paired_migration(dir: &Path, name: &str) -> Result<PathBuf> {
+    let sanitized = sanitize_name(name);
+    if sanitized.is_empty() {
+        return Err(eyre!("sanitized name is empty"));
+    }
+    let ts = Local::now().format("%Y%m%d%H%M%S").to_string();
+    let mut path = dir.join(format!("{ts}_{sanitized}"));
+    let mut suffix = 1;
+    while path.exists() {
+        path = dir.join(format!("{ts}_{sanitized}_{suffix}"));
+        suffix += 1;
+    }
+    fs::create_dir_all(&path)?;
+    let up_path = path.join("up.surql");
+    let down_path = path.join("down.surql");
+    let header = format!(
+        "-- migration: {name}\n-- created: {now}\n",
+        name = name,
+        now = Local::now()
+    );
+    let mut f_up = File::create(&up_path)?;
+    let _ = f_up.write_all(header.as_bytes());
+    let mut f_down = File::create(&down_path)?;
+    let _ = f_down.write_all(header.as_bytes());
+    Ok(path)
+}
