@@ -113,14 +113,14 @@ mod migrations_impl {
 
         /// Remove a migration record from the `migrations` table.
         async fn remove_migration_record(&self, name: &str) -> Result<()> {
-            let sql = format!("DELETE FROM migrations WHERE name = \"{}\";", name);
-            let _ = self.db.query(&sql).await.map_err(|e| eyre::eyre!(e.to_string()))?;
+            let sql = "DELETE FROM migrations WHERE name = $name;";
+            let _ = self.db.query(sql).bind(("name", name.to_owned())).await.map_err(|e| eyre::eyre!(e.to_string()))?;
             Ok(())
         }
 
         /// Ensure the `migrations` table exists.
         async fn ensure_migrations_table_exists(&self) -> Result<()> {
-            let sql = "CREATE TABLE IF NOT EXISTS migrations;";
+            let sql = "DEFINE TABLE IF NOT EXISTS migrations;";
             self.db.query(sql).await.map_err(|e| eyre::eyre!(e.to_string()))?;
             Ok(())
         }
