@@ -5,13 +5,13 @@ mod migrations_impl {
     use serde_json::{self, json, Value};
 
     /// A simple migration runner for SurrealDB.
-    pub struct MigrationRunner<E: surrealdb::Connection> {
-        pub db: Surreal<E>,
+    pub struct MigrationRunner<'a, E: surrealdb::Connection> {
+        pub db: &'a Surreal<E>,
         pub migrations_dir: Box<Path>,
     }
 
-    impl<E: surrealdb::Connection> MigrationRunner<E> {
-        pub fn new(db: Surreal<E>, migrations_dir: &Path) -> Self {
+    impl<'a, E: surrealdb::Connection> MigrationRunner<'a, E> {
+        pub fn new(db: &'a Surreal<E>, migrations_dir: &Path) -> Self {
             Self {
                 db,
                 migrations_dir: migrations_dir.to_path_buf().into_boxed_path(),

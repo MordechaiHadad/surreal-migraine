@@ -1,6 +1,6 @@
 [package]
 name = "surreal-migraine"
-version = "0.1.2"
+version = "0.1.3"
 edition = "2024"
 description = "Small CLI to create SurrealDB migration files with numeric or temporal prefixes."
 license = "MIT"
