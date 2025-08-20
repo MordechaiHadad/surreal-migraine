@@ -130,7 +130,14 @@ mod migrations_impl {
                 .filter_map(|r| r.ok())
                 .filter(|e| {
                     let p = e.path();
-                    p.is_file() || p.is_dir()
+                    let is_entry = p.is_file() || p.is_dir();
+                    if !is_entry {
+                        return false;
+                    }
+                    if let Some(fname) = p.file_name().and_then(|s| s.to_str().map(|s| s.to_string())) {
+                        return fname.chars().next().map(|c| c.is_ascii_digit()).unwrap_or(false);
+                    }
+                    false
                 })
                 .collect::<Vec<_>>();
 
