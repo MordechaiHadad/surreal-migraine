@@ -190,7 +190,7 @@ mod migrations_impl {
         /// Record a migration as applied by creating a record in `migrations`.
         async fn record_migration(&self, name: &str) -> Result<()> {
             let content = json!({ "name": name });
-            let _created: Option<surrealdb::Value> = self
+            let _: Option<surrealdb::sql::Value> = self
                 .db
                 .create("migrations")
                 .content(content)
