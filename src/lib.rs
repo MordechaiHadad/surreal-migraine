@@ -1,7 +1,8 @@
 mod migrations_impl {
     use eyre::Result;
+    use serde::{de, Deserialize};
     use std::path::Path;
-    use surrealdb::Surreal;
+    use surrealdb::{RecordId, Surreal};
     use serde_json::{self, json, Value};
 
     /// A simple migration runner for SurrealDB.
@@ -190,7 +191,7 @@ mod migrations_impl {
         /// Record a migration as applied by creating a record in `migrations`.
         async fn record_migration(&self, name: &str) -> Result<()> {
             let content = json!({ "name": name });
-            let _: Option<surrealdb::sql::Value> = self
+            let _: Option<Record> = self
                 .db
                 .create("migrations")
                 .content(content)
@@ -204,6 +205,11 @@ mod migrations_impl {
     pub struct Migration {
         pub name: String,
         pub path: Box<Path>,
+    }
+
+    #[derive(Deserialize, Debug)]
+    struct Record {
+        id: RecordId
     }
 
 }
