@@ -1,9 +1,9 @@
 mod migrations_impl {
     use eyre::Result;
-    use serde::{de, Deserialize};
+    use serde::{Deserialize, Serialize};
+    use serde_json::json;
     use std::path::Path;
     use surrealdb::{RecordId, Surreal};
-    use serde_json::{self, json, Value};
 
     /// A simple migration runner for SurrealDB.
     pub struct MigrationRunner<'a, E: surrealdb::Connection> {
@@ -41,7 +41,10 @@ mod migrations_impl {
                     std::fs::read_to_string(&migration.path)?
                 };
 
-                self.db.query(&content).await.map_err(|e| eyre::eyre!(e.to_string()))?;
+                self.db
+                    .query(&content)
+                    .await
+                    .map_err(|e| eyre::eyre!(e.to_string()))?;
                 self.record_migration(&migration.name).await?;
                 println!("Applied migration: {}", migration.name);
             }
@@ -100,7 +103,10 @@ mod migrations_impl {
                     };
 
                     if let Some(content) = down_content {
-                        self.db.query(&content).await.map_err(|e| eyre::eyre!(e.to_string()))?;
+                        self.db
+                            .query(&content)
+                            .await
+                            .map_err(|e| eyre::eyre!(e.to_string()))?;
                         self.remove_migration_record(&migration.name).await?;
                         println!("Reverted migration: {}", migration.name);
                     } else {
@@ -115,14 +121,22 @@ mod migrations_impl {
         /// Remove a migration record from the `migrations` table.
         async fn remove_migration_record(&self, name: &str) -> Result<()> {
             let sql = "DELETE FROM migrations WHERE name = $name;";
-            let _ = self.db.query(sql).bind(("name", name.to_owned())).await.map_err(|e| eyre::eyre!(e.to_string()))?;
+            let _ = self
+                .db
+                .query(sql)
+                .bind(("name", name.to_owned()))
+                .await
+                .map_err(|e| eyre::eyre!(e.to_string()))?;
             Ok(())
         }
 
         /// Ensure the `migrations` table exists.
         async fn ensure_migrations_table_exists(&self) -> Result<()> {
             let sql = "DEFINE TABLE IF NOT EXISTS migrations;";
-            self.db.query(sql).await.map_err(|e| eyre::eyre!(e.to_string()))?;
+            self.db
+                .query(sql)
+                .await
+                .map_err(|e| eyre::eyre!(e.to_string()))?;
             Ok(())
         }
 
@@ -135,8 +149,15 @@ mod migrations_impl {
                     if !is_entry {
                         return false;
                     }
-                    if let Some(fname) = p.file_name().and_then(|s| s.to_str().map(|s| s.to_string())) {
-                        return fname.chars().next().map(|c| c.is_ascii_digit()).unwrap_or(false);
+                    if let Some(fname) = p
+                        .file_name()
+                        .and_then(|s| s.to_str().map(|s| s.to_string()))
+                    {
+                        return fname
+                            .chars()
+                            .next()
+                            .map(|c| c.is_ascii_digit())
+                            .unwrap_or(false);
                     }
                     false
                 })
@@ -164,7 +185,7 @@ mod migrations_impl {
         ///
         /// Pages results in batches to avoid loading very large tables into memory.
         async fn get_applied_migrations(&self) -> Result<Vec<String>> {
-            let rows: Vec<Value> = match self.db.select("migrations").await {
+            let migrations: Vec<MigrationRecord> = match self.db.select("migrations").await {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::debug!("failed to select migrations: {}", e.to_string());
@@ -172,20 +193,16 @@ mod migrations_impl {
                 }
             };
 
-            let mut out = Vec::new();
-            for v in rows {
-                match v {
-                    Value::Object(map) => {
-                        if let Some(Value::String(s)) = map.get("name") {
-                            out.push(s.clone());
-                        }
-                    }
-                    Value::String(s) => out.push(s),
-                    _ => continue,
+            let mut migration_strings = Vec::new();
+
+            for record in migrations {
+                let name = record.name;
+                if !name.is_empty() {
+                    migration_strings.push(name);
                 }
             }
 
-            Ok(out)
+            Ok(migration_strings)
         }
 
         /// Record a migration as applied by creating a record in `migrations`.
@@ -201,12 +218,17 @@ mod migrations_impl {
         }
     }
 
+    #[derive(Debug, Clone, Serialize, Deserialize)]
+    struct MigrationRecord {
+        pub id: RecordId,
+        pub name: String,
+    }
+
     #[derive(Debug, Clone)]
     pub struct Migration {
         pub name: String,
         pub path: Box<Path>,
     }
-
 }
 
 pub use migrations_impl::*;
