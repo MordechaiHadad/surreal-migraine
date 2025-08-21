@@ -132,7 +132,7 @@ mod migrations_impl {
 
         /// Ensure the `migrations` table exists.
         async fn ensure_migrations_table_exists(&self) -> Result<()> {
-            let sql = "DEFINE TABLE IF NOT EXISTS migrations;";
+            let sql = "DEFINE TABLE IF NOT EXISTS migrations PERMISSIONS NONE;";
             self.db
                 .query(sql)
                 .await
