@@ -41,12 +41,13 @@ mod migrations_impl {
                     std::fs::read_to_string(&migration.path)?
                 };
 
+                let tx_sql = format!("BEGIN TRANSACTION;\n{content}\nCOMMIT TRANSACTION;");
                 self.db
-                    .query(&content)
+                    .query(&tx_sql)
                     .await
                     .map_err(|e| eyre::eyre!(e.to_string()))?;
                 self.record_migration(&migration.name).await?;
-                println!("Applied migration: {}", migration.name);
+                tracing::info!("Applied migration: {}", migration.name);
             }
 
             Ok(())
@@ -103,12 +104,13 @@ mod migrations_impl {
                     };
 
                     if let Some(content) = down_content {
+                        let tx_sql = format!("BEGIN TRANSACTION;\n{content}\nCOMMIT TRANSACTION;");
                         self.db
-                            .query(&content)
+                            .query(&tx_sql)
                             .await
                             .map_err(|e| eyre::eyre!(e.to_string()))?;
                         self.remove_migration_record(&migration.name).await?;
-                        println!("Reverted migration: {}", migration.name);
+                        tracing::info!("Reverted migration: {}", migration.name);
                     } else {
                         tracing::warn!(migration = %migration.name, "no down script found; skipping");
                     }
