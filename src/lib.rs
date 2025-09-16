@@ -42,10 +42,25 @@ mod migrations_impl {
                 };
 
                 let tx_sql = format!("BEGIN TRANSACTION;\n{content}\nCOMMIT TRANSACTION;");
-                self.db
+                let mut response = self
+                    .db
                     .query(&tx_sql)
                     .await
                     .map_err(|e| eyre::eyre!(e.to_string()))?;
+
+                let errors = response.take_errors();
+                if !errors.is_empty() {
+                    let remaining = errors
+                        .values()
+                        .map(|e| e.to_string())
+                        .filter(|s| !s.contains("The query was not executed due to a failed transaction"))
+                        .collect::<Vec<_>>();
+
+                    if !remaining.is_empty() {
+                        let first = &remaining[0];
+                        return Err(eyre::eyre!(first.to_owned()));
+                    }
+                }
                 self.record_migration(&migration.name).await?;
                 tracing::info!("Applied migration: {}", migration.name);
             }
@@ -105,10 +120,25 @@ mod migrations_impl {
 
                     if let Some(content) = down_content {
                         let tx_sql = format!("BEGIN TRANSACTION;\n{content}\nCOMMIT TRANSACTION;");
-                        self.db
+                        let mut response = self
+                            .db
                             .query(&tx_sql)
                             .await
                             .map_err(|e| eyre::eyre!(e.to_string()))?;
+
+                        let errors = response.take_errors();
+                        if !errors.is_empty() {
+                            let remaining = errors
+                                .values()
+                                .map(|e| e.to_string())
+                                .filter(|s| !s.contains("The query was not executed due to a failed transaction"))
+                                .collect::<Vec<_>>();
+
+                            if !remaining.is_empty() {
+                                let first = &remaining[0];
+                                return Err(eyre::eyre!(first.to_owned()));
+                            }
+                        }
                         self.remove_migration_record(&migration.name).await?;
                         tracing::info!("Reverted migration: {}", migration.name);
                     } else {
