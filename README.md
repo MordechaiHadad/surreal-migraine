@@ -6,11 +6,17 @@ A tiny CLI to generate SurrealDB migration files (numeric or temporal prefixed).
 Install
 
 ```powershell
-# install from crates.io
+# install (binary) from crates.io
 cargo install surreal-migraine
 
-# or build locally
+# install (library) from crates.io
+cargo add surreal-migraine
+
+# build (binary) locally
 cargo build --release
+
+# or build (library) locally
+cargo build --release --lib
 ```
 
 Usage
