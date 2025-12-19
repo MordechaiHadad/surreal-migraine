@@ -37,16 +37,15 @@ pub fn next_numeric_prefix(dir: &Path) -> Result<u64> {
     let mut max: Option<u64> = None;
     for entry in fs::read_dir(dir)? {
         let e = entry?;
-        if let Some(name) = e.file_name().to_str() {
-            if name.ends_with(".surql") || e.path().is_dir() {
-                if let Some(n) = parse_numeric_prefix(name) {
-                    max = Some(match max {
-                        Some(m) => m.max(n),
-                        None => n,
-                    });
-                    tracing::trace!(file = name, prefix = n);
-                }
-            }
+        if let Some(name) = e.file_name().to_str()
+            && (name.ends_with(".surql") || e.path().is_dir())
+            && let Some(n) = parse_numeric_prefix(name)
+        {
+            max = Some(match max {
+                Some(m) => m.max(n),
+                None => n,
+            });
+            tracing::trace!(file = name, prefix = n);
         }
     }
     let next = max.map_or(0, |v| v + 1);
