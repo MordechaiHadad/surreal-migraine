@@ -20,7 +20,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: clippy
-          args: --verbose --workspace -- -D warnings
+          args: --workspace --all-targets -- -D warnings
 
   test:
     runs-on: ubuntu-latest
@@ -64,7 +64,7 @@ jobs:
     needs: [clippy, formatting, test]
     strategy:
       matrix:
-        os: [ubuntu-latest, ubuntu-24.04-arm, macos-13, macos-latest, windows-latest]
+        os: [ubuntu-latest, ubuntu-24.04-arm, macos-15, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
