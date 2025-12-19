@@ -20,7 +20,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: clippy
-          args: --verbose -- -D warnings --workspace
+          args: --verbose --workspace -- -D warnings
 
   test:
     runs-on: ubuntu-latest
