@@ -1,5 +1,5 @@
 mod migrations_impl {
-    use eyre::Result;
+    use eyre::{Result, eyre};
     use serde::{Deserialize, Serialize};
     use serde_json::json;
     use std::path::Path;
@@ -46,19 +46,21 @@ mod migrations_impl {
                     .db
                     .query(&tx_sql)
                     .await
-                    .map_err(|e| eyre::eyre!(e.to_string()))?;
+                    .map_err(|e| eyre!(e.to_string()))?;
 
                 let errors = response.take_errors();
                 if !errors.is_empty() {
                     let remaining = errors
                         .values()
                         .map(|e| e.to_string())
-                        .filter(|s| !s.contains("The query was not executed due to a failed transaction"))
+                        .filter(|s| {
+                            !s.contains("The query was not executed due to a failed transaction")
+                        })
                         .collect::<Vec<_>>();
 
                     if !remaining.is_empty() {
                         let first = &remaining[0];
-                        return Err(eyre::eyre!(first.to_owned()));
+                        eyre::bail!(first.to_owned());
                     }
                 }
                 self.record_migration(&migration.name).await?;
@@ -124,19 +126,23 @@ mod migrations_impl {
                             .db
                             .query(&tx_sql)
                             .await
-                            .map_err(|e| eyre::eyre!(e.to_string()))?;
+                            .map_err(|e| eyre!(e.to_string()))?;
 
                         let errors = response.take_errors();
                         if !errors.is_empty() {
                             let remaining = errors
                                 .values()
                                 .map(|e| e.to_string())
-                                .filter(|s| !s.contains("The query was not executed due to a failed transaction"))
+                                .filter(|s| {
+                                    !s.contains(
+                                        "The query was not executed due to a failed transaction",
+                                    )
+                                })
                                 .collect::<Vec<_>>();
 
                             if !remaining.is_empty() {
                                 let first = &remaining[0];
-                                return Err(eyre::eyre!(first.to_owned()));
+                                eyre::bail!(first.to_owned());
                             }
                         }
                         self.remove_migration_record(&migration.name).await?;
@@ -158,7 +164,7 @@ mod migrations_impl {
                 .query(sql)
                 .bind(("name", name.to_owned()))
                 .await
-                .map_err(|e| eyre::eyre!(e.to_string()))?;
+                .map_err(|e| eyre!(e.to_string()))?;
             Ok(())
         }
 
@@ -168,7 +174,7 @@ mod migrations_impl {
             self.db
                 .query(sql)
                 .await
-                .map_err(|e| eyre::eyre!(e.to_string()))?;
+                .map_err(|e| eyre!(e.to_string()))?;
             Ok(())
         }
 
@@ -245,7 +251,7 @@ mod migrations_impl {
                 .query("CREATE migrations CONTENT $content")
                 .bind(("content", content))
                 .await
-                .map_err(|e| eyre::eyre!(e.to_string()))?;
+                .map_err(|e| eyre!(e.to_string()))?;
             Ok(())
         }
     }

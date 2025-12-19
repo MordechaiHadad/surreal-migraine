@@ -6,12 +6,7 @@ use tempfile::tempdir;
 fn default_add_creates_paired_folder() {
     let dir = tempdir().unwrap();
     let mut cmd = Command::cargo_bin("smg").unwrap();
-    cmd.args([
-        "add",
-        "create_users",
-        "--dir",
-        dir.path().to_str().unwrap(),
-    ]);
+    cmd.args(["add", "create_users", "--dir", dir.path().to_str().unwrap()]);
     cmd.assert().success();
 
     let entries: Vec<_> = fs::read_dir(dir.path())
@@ -49,5 +44,9 @@ fn single_flag_creates_single_file() {
         .unwrap()
         .map(|e| e.unwrap().file_name().to_string_lossy().to_string())
         .collect();
-    assert!(entries.iter().any(|n| n.starts_with("000_create_users.surql")));
+    assert!(
+        entries
+            .iter()
+            .any(|n| n.starts_with("000_create_users.surql"))
+    );
 }

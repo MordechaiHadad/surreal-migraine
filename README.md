@@ -7,16 +7,17 @@ Install
 
 ```powershell
 # install (binary) from crates.io
-cargo install surreal-migraine
+cargo install surreal-migraine-cli
 
 # install (library) from crates.io
 cargo add surreal-migraine
 
 # build (binary) locally
+cd cli
 cargo build --release
 
 # or build (library) locally
-cargo build --release --lib
+cargo build --release
 ```
 
 Usage

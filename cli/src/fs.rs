@@ -59,7 +59,7 @@ pub fn next_numeric_prefix(dir: &Path) -> Result<u64> {
 pub fn create_numeric_migration(dir: &Path, name: &str) -> Result<PathBuf> {
     let sanitized = sanitize_name(name);
     if sanitized.is_empty() {
-        return Err(eyre!("sanitized name is empty"));
+        eyre::bail!("sanitized name is empty");
     }
     let mut n = next_numeric_prefix(dir)?;
     for _ in 0..1000 {
@@ -91,7 +91,7 @@ pub fn create_numeric_migration(dir: &Path, name: &str) -> Result<PathBuf> {
 pub fn create_temporal_migration(dir: &Path, name: &str) -> Result<PathBuf> {
     let sanitized = sanitize_name(name);
     if sanitized.is_empty() {
-        return Err(eyre!("sanitized name is empty"));
+        eyre::bail!("sanitized name is empty");
     }
     let ts = Local::now().format("%Y%m%d%H%M%S").to_string();
     let mut path = dir.join(format!("{ts}_{sanitized}.surql"));
@@ -115,7 +115,7 @@ pub fn create_temporal_migration(dir: &Path, name: &str) -> Result<PathBuf> {
 pub fn create_numeric_paired_migration(dir: &Path, name: &str) -> Result<PathBuf> {
     let sanitized = sanitize_name(name);
     if sanitized.is_empty() {
-        return Err(eyre!("sanitized name is empty"));
+        eyre::bail!("sanitized name is empty");
     }
     let mut n = next_numeric_prefix(dir)?;
     for _ in 0..1000 {
@@ -143,11 +143,11 @@ pub fn create_numeric_paired_migration(dir: &Path, name: &str) -> Result<PathBuf
                     n += 1;
                     continue;
                 }
-                return Err(eyre!(e));
+                eyre::bail!(e);
             }
         }
     }
-    Err(eyre!("failed to create unique numeric paired migration after retries"))
+    eyre::bail!("failed to create unique numeric paired migration after retries")
 }
 
 /// Create a temporal "paired" migration as a folder containing `up.surql` and `down.surql`.
@@ -155,7 +155,7 @@ pub fn create_numeric_paired_migration(dir: &Path, name: &str) -> Result<PathBuf
 pub fn create_temporal_paired_migration(dir: &Path, name: &str) -> Result<PathBuf> {
     let sanitized = sanitize_name(name);
     if sanitized.is_empty() {
-        return Err(eyre!("sanitized name is empty"));
+        eyre::bail!("sanitized name is empty");
     }
     let ts = Local::now().format("%Y%m%d%H%M%S").to_string();
     let mut path = dir.join(format!("{ts}_{sanitized}"));
