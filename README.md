@@ -1,7 +1,7 @@
 surreal-migraine
 =================
 
-A tiny CLI to generate SurrealDB migration files (numeric or temporal prefixed).
+A tiny CLI and library to generate and manage SurrealDB migration files (numeric or temporal prefixed).
 
 Install
 
@@ -13,11 +13,10 @@ cargo install surreal-migraine-cli
 cargo add surreal-migraine
 
 # build (binary) locally
-cd cli
 cargo build --release
 
 # or build (library) locally
-cargo build --release
+cargo build --release -p surreal-migraine
 ```
 
 Usage

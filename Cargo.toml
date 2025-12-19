@@ -12,7 +12,6 @@ repository = "https://github.com/MordechaiHadad/surreal-migraine"
 
 [workspace.dependencies]
 eyre = "0.6.12"
-regex = "1.11.1"
 tracing = "0.1.41"
 surrealdb = { version = "2.3.7", default-features = false }
 serde_json = "1.0"
@@ -20,12 +19,12 @@ serde = { version = "1.0", features = ["derive"] }
 
 [package]
 name = "surreal-migraine"
-readme = "README.md"
 description = "A library for managing surrealdb migrations"
 version.workspace = true
 license.workspace = true
 edition.workspace = true
 repository.workspace = true
+readme.workspace = true
 
 [dependencies]
 eyre.workspace = true
