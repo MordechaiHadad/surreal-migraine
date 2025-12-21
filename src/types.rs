@@ -1,8 +1,11 @@
 use eyre::Result;
 use include_dir::{Dir, DirEntry};
 use serde::{Deserialize, Serialize};
+use std::{
+    fs::read_to_string,
+    path::{Path, PathBuf},
+};
 use surrealdb::RecordId;
-use std::{fs::read_to_string, path::PathBuf};
 
 #[derive(Debug, Clone)]
 pub enum MigrationKind {
@@ -145,12 +148,15 @@ impl MigrationSource for EmbeddedSource<'_> {
     fn get_up(&self, migration: &Migration) -> Result<String> {
         match migration.kind {
             MigrationKind::Paired => {
+                let file_path = Path::new(&migration.name).join("up.surql");
+
                 let dir = self
                     .source
                     .get_dir(&migration.name)
                     .ok_or_else(|| eyre::eyre!("migration directory not found"))?;
+
                 let file = dir
-                    .get_file("up.surql")
+                    .get_file(file_path)
                     .ok_or_else(|| eyre::eyre!("up.surql not found"))?;
                 let content = file
                     .contents_utf8()
