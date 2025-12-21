@@ -1,5 +1,7 @@
 use eyre::Result;
 use include_dir::{Dir, DirEntry};
+use serde::{Deserialize, Serialize};
+use surrealdb::RecordId;
 use std::{fs::read_to_string, path::PathBuf};
 
 #[derive(Debug, Clone)]
@@ -12,6 +14,12 @@ pub enum MigrationKind {
 pub struct Migration {
     pub name: String,
     pub kind: MigrationKind,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MigrationRecord {
+    pub id: RecordId,
+    pub name: String,
 }
 
 pub trait MigrationSource {
@@ -97,11 +105,11 @@ impl MigrationSource for DiskSource {
 }
 
 pub struct EmbeddedSource<'a> {
-    source: Dir<'a>,
+    source: &'a Dir<'a>,
 }
 
 impl<'a> EmbeddedSource<'a> {
-    pub fn new(source: Dir<'a>) -> Self {
+    pub fn new(source: &'a Dir<'a>) -> Self {
         Self { source }
     }
 }

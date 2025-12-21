@@ -2,10 +2,9 @@ pub mod types;
 
 mod migrations_impl {
     use eyre::{Result, eyre};
-    use serde::{Deserialize, Serialize};
     use serde_json::json;
-    use surrealdb::{RecordId, Surreal};
-    use crate::types::MigrationSource;
+    use surrealdb::Surreal;
+    use crate::types::{MigrationRecord, MigrationSource};
 
     /// A simple migration runner for SurrealDB.
     pub struct MigrationRunner<'a, E: surrealdb::Connection, S: MigrationSource> {
@@ -184,12 +183,7 @@ mod migrations_impl {
         }
     }
 
-    #[derive(Debug, Clone, Serialize, Deserialize)]
-    struct MigrationRecord {
-        pub id: RecordId,
-        pub name: String,
-    }
 }
 
 pub use migrations_impl::*;
-pub use include_dir::include_dir;
+pub use include_dir::{include_dir, Dir};
