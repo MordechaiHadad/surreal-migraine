@@ -26,5 +26,5 @@ async fn test_migrations_apply_successfully() {
         .unwrap()
         .take(0)
         .unwrap();
-    assert!(users.len() > 0, "Users table should have been created");
+    assert!(!users.is_empty(), "Users table should have been created");
 }
