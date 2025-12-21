@@ -7,17 +7,75 @@ mod migrations_impl {
     use surrealdb::Surreal;
 
     /// A simple migration runner for SurrealDB.
+    ///
+    /// `MigrationRunner` discovers migrations via a `MigrationSource` and
+    /// applies or reverts them against a live `Surreal` connection.
+    ///
+    /// Fields:
+    /// - `db`: reference to a connected `Surreal` client used to execute
+    ///   migration SQL.
+    /// - `source`: the `MigrationSource` implementation used to discover and
+    ///   load migration contents (for example `DiskSource` or
+    ///   `EmbeddedSource`).
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// use surrealdb::Surreal;
+    /// use crate::types::DiskSource;
+    /// use crate::MigrationRunner;
+    ///
+    /// // Connect to the DB (omitted). Create a DiskSource for the `migrations`
+    /// // directory and construct the runner.
+    /// let db: Surreal<_> = /* connect to DB */;
+    /// let src = DiskSource::new("migrations");
+    /// let runner = MigrationRunner::new(&db, src);
+    ///
+    /// // Run pending migrations (async context).
+    /// // runner.up().await.unwrap();
+    /// ```
     pub struct MigrationRunner<'a, E: surrealdb::Connection, S: MigrationSource> {
+        /// Reference to the connected SurrealDB client used to execute queries.
         pub db: &'a Surreal<E>,
+        /// Migration discovery/source implementation (filesystem, embedded, etc.).
         pub source: S,
     }
 
     impl<'a, E: surrealdb::Connection, S: MigrationSource> MigrationRunner<'a, E, S> {
+        /// Create a new `MigrationRunner` with the given database client and
+        /// migration `source`.
+        ///
+        /// # Examples
+        ///
+        /// ```rust,ignore
+        /// use surrealdb::Surreal;
+        /// use crate::types::DiskSource;
+        /// use crate::MigrationRunner;
+        ///
+        /// let db: Surreal<_> = /* connect */;
+        /// let src = DiskSource::new("migrations");
+        /// let runner = MigrationRunner::new(&db, src);
+        /// ```
         pub fn new(db: &'a Surreal<E>, source: S) -> Self {
             Self { db, source }
         }
 
-        /// Run all pending migrations found in the migrations directory.
+        /// Run all pending migrations discovered by the configured
+        /// `MigrationSource`.
+        ///
+        /// This method ensures the `migrations` table exists, discovers
+        /// available migrations, filters out ones already recorded in the
+        /// database, and executes each migration inside a transaction. On
+        /// success each migration is recorded in the `migrations` table.
+        ///
+        /// # Example
+        ///
+        /// ```rust,ignore
+        /// # async fn run_example(runner: &MigrationRunner<'_, _, _>) -> eyre::Result<()> {
+        /// runner.up().await?;
+        /// # Ok(())
+        /// # }
+        /// ```
         pub async fn up(&self) -> Result<()> {
             self.ensure_migrations_table_exists().await?;
 
@@ -63,11 +121,21 @@ mod migrations_impl {
             Ok(())
         }
 
-        /// Revert applied migrations in reverse chronological (discovery) order.
-        /// For paired folders this runs `down.surql`. For single-file migrations,
-        /// this looks for a sibling file named `<name>_down.surql` or `down.<name>.surql`
-        /// (basic heuristics) and runs it if present. After successful revert,
-        /// the migration record is removed from the `migrations` table.
+        /// Revert applied migrations in reverse discovery order.
+        ///
+        /// For `Paired` migrations this runs the embedded `down.surql`. For
+        /// up-only file migrations the runner attempts basic heuristics to
+        /// locate a sibling down script. After a successful revert the
+        /// migration record is removed from the `migrations` table.
+        ///
+        /// # Example
+        ///
+        /// ```rust,ignore
+        /// # async fn revert_example(runner: &MigrationRunner<'_, _, _>) -> eyre::Result<()> {
+        /// runner.down().await?;
+        /// # Ok(())
+        /// # }
+        /// ```
         pub async fn down(&self) -> Result<()> {
             self.ensure_migrations_table_exists().await?;
 
