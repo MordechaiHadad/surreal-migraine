@@ -1,10 +1,10 @@
 pub mod types;
 
 mod migrations_impl {
+    use crate::types::{MigrationRecord, MigrationSource};
     use eyre::{Result, eyre};
     use serde_json::json;
     use surrealdb::Surreal;
-    use crate::types::{MigrationRecord, MigrationSource};
 
     /// A simple migration runner for SurrealDB.
     pub struct MigrationRunner<'a, E: surrealdb::Connection, S: MigrationSource> {
@@ -145,7 +145,6 @@ mod migrations_impl {
             Ok(())
         }
 
-
         /// Retrieve applied migration names from the `migrations` table.
         ///
         /// Pages results in batches to avoid loading very large tables into memory.
@@ -182,8 +181,7 @@ mod migrations_impl {
             Ok(())
         }
     }
-
 }
 
+pub use include_dir::{Dir, include_dir};
 pub use migrations_impl::*;
-pub use include_dir::{include_dir, Dir};

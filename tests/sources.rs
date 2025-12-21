@@ -1,7 +1,6 @@
-
 use eyre::Result;
-use tempfile::tempdir;
 use surreal_migraine::types::{DiskSource, MigrationKind, MigrationSource};
+use tempfile::tempdir;
 
 #[test]
 fn disk_source_list_and_gets() -> Result<()> {
