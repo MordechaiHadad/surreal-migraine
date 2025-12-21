@@ -61,7 +61,7 @@ impl MigrationSource for DiskSource {
                 None => continue,
             };
 
-            if !name.chars().next().map_or(false, |c| c.is_ascii_digit()) {
+            if !name.chars().next().is_some_and(|c| c.is_ascii_digit()) {
                 continue;
             }
 
@@ -130,7 +130,7 @@ impl MigrationSource for EmbeddedSource<'_> {
                 .to_string_lossy()
                 .to_string();
 
-            if !name.chars().next().map_or(false, |c| c.is_ascii_digit()) {
+            if !name.chars().next().is_some_and(|c| c.is_ascii_digit()) {
                 continue;
             }
 
