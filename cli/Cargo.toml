@@ -15,7 +15,7 @@ path = "src/main.rs"
 chrono = "0.4.41"
 clap = { version = "4.5.45", features = ["derive"] }
 color-eyre = "0.6.5"
-tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
+tracing-subscriber = { version = "0.3.22", features = ["env-filter"] }
 regex = "1.11.1"
 eyre.workspace = true
 tracing.workspace = true
