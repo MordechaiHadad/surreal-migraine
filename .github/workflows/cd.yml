@@ -1,0 +1,122 @@
+name: Continuous Deployment
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+jobs:
+  check-version:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Check version
+        id: check_version
+        run: |
+          VERSION=v$(grep '^version =' Cargo.toml | cut -d '"' -f 2 | head -n 1)
+          GIT_TAG_VERSION=${{ github.ref }}
+          GIT_TAG_VERSION=${GIT_TAG_VERSION#refs/tags/}
+          if [[ "$VERSION" != "$GIT_TAG_VERSION" ]]; then
+            echo "Version in Cargo.toml ($VERSION) does not match pushed tag ($GIT_TAG_VERSION)"
+            exit 1
+          fi
+
+  build:
+    needs: [check-version]
+    strategy:
+      matrix:
+        os:
+          - {
+              NAME: linux,
+              OS: ubuntu-latest,
+              ARCH: x86_64,
+              PATH: target/release/smg,
+              TARGET: "",
+            }
+          - {
+              NAME: linux,
+              OS: ubuntu-24.04-arm,
+              ARCH: arm,
+              PATH: target/release/smg,
+              TARGET: "",
+            }
+          - {
+              NAME: macos,
+              OS: macos-latest,
+              ARCH: x86_64,
+              PATH: target/x86_64-apple-darwin/release/smg,
+              TARGET: "x86_64-apple-darwin",
+            }
+          - {
+              NAME: windows,
+              OS: windows-latest,
+              ARCH: x86_64,
+              PATH: target/release/smg.exe,
+              TARGET: "",
+            }
+          - {
+              NAME: macos,
+              OS: macos-latest,
+              ARCH: arm,
+              PATH: target/release/smg,
+              TARGET: "",
+            }
+    runs-on: ${{matrix.os.OS}}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          override: true
+      - name: Add Rust target for cross-compilation
+        if: matrix.os.TARGET != ''
+        run: rustup target add ${{ matrix.os.TARGET }}
+      - uses: Swatinem/rust-cache@v1
+      - name: Build Surreal Migraine
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --locked --release ${{ matrix.os.TARGET != '' && format('--target {0}', matrix.os.TARGET) || '' }}
+
+      - name: Upload Surreal Migraine binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: "smg-${{ matrix.os.NAME }}-${{ matrix.os.ARCH }}"
+          path: ${{ matrix.os.PATH }}
+          if-no-files-found: error
+
+  github-release:
+    needs: [build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          generate_release_notes: true
+          files: |
+            ./artifacts/**
+
+  publish-cargo:
+    needs: github-release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+      - uses: katyo/publish-crates@v2
+        with:
+          registry-token: ${{ secrets.CARGO_REGISTRY_TOKEN }}
