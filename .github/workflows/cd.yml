@@ -23,7 +23,7 @@ jobs:
           fi
 
   build:
-    needs: [clippy, formatting, test, security_audit]
+    needs: [check-version]
     strategy:
       matrix:
         os:
