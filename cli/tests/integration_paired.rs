@@ -1,11 +1,11 @@
-use assert_cmd::Command;
+use assert_cmd::cargo::cargo_bin_cmd;
 use std::fs;
 use tempfile::tempdir;
 
 #[test]
 fn default_add_creates_paired_folder() {
     let dir = tempdir().unwrap();
-    let mut cmd = Command::cargo_bin("smg").unwrap();
+    let mut cmd = cargo_bin_cmd!("smg");
     cmd.args(["add", "create_users", "--dir", dir.path().to_str().unwrap()]);
     cmd.assert().success();
 
@@ -30,7 +30,7 @@ fn default_add_creates_paired_folder() {
 #[test]
 fn single_flag_creates_single_file() {
     let dir = tempdir().unwrap();
-    let mut cmd = Command::cargo_bin("smg").unwrap();
+    let mut cmd = cargo_bin_cmd!("smg");
     cmd.args([
         "add",
         "create_users",
