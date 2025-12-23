@@ -31,11 +31,27 @@ jobs:
       matrix:
         os:
           [
-            { OS: ubuntu-latest, BIN_NAME: linux-x86_64 },
-            { OS: ubuntu-24.04-arm, BIN_NAME: linux_aarch64 },
-            { OS: macos-15, BIN_NAME: macos-x86_64 },
-            { OS: macos-latest, BIN_NAME: macos-aarch64 },
-            { OS: windows-latest, BIN_NAME: windows-x86_64 },
+            {
+              OS: ubuntu-latest,
+              BIN_NAME: linux-x86_64,
+              PATH: target/release/smg,
+            },
+            {
+              OS: ubuntu-24.04-arm,
+              BIN_NAME: linux_aarch64,
+              PATH: target/release/smg,
+            },
+            { OS: macos-15, BIN_NAME: macos-x86_64, PATH: target/release/smg },
+            {
+              OS: macos-latest,
+              BIN_NAME: macos-aarch64,
+              PATH: target/release/smg,
+            },
+            {
+              OS: windows-latest,
+              BIN_NAME: windows-x86_64,
+              PATH: target/release/smg.exe,
+            },
           ]
     runs-on: ${{ matrix.os.OS }}
     steps:
@@ -59,9 +75,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: "surreal-migraine-${{ matrix.os.BIN_NAME }}"
-          path: |
-            target/release/smg
-            target/release/smg.exe
+          path: ${{ matrix.os.PATH }}
           if-no-files-found: error
           retention-days: 7
 
