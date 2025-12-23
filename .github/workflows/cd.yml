@@ -79,7 +79,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: build
-          args: --locked --release ${{ matrix.os.TARGET != '' && format('--target {0}', matrix.os.TARGET) || '' }}
+          args: --locked --release --bin smg ${{ matrix.os.TARGET != '' && format('--target {0}', matrix.os.TARGET) || '' }}
 
       - name: Upload Surreal Migraine binary
         uses: actions/upload-artifact@v4
