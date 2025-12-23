@@ -64,3 +64,7 @@ Notes
 - Names are sanitized (whitespace -> underscores, invalid chars removed).
 - Numeric mode picks the next numeric prefix (e.g. `000_...`, `001_...`).
 - Temporal mode uses a timestamp `YYYYMMDDHHMMSS` and will append a suffix if a collision occurs.
+
+## :heart: Special Thanks
+
+- [include_dir](https://github.com/Michael-F-Bryan/include_dir) For making embedding directories easy.

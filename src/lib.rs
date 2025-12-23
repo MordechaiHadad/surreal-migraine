@@ -1,29 +1,85 @@
+pub mod types;
+
 mod migrations_impl {
+    use crate::types::{MigrationRecord, MigrationSource};
     use eyre::{Result, eyre};
-    use serde::{Deserialize, Serialize};
     use serde_json::json;
-    use std::path::Path;
-    use surrealdb::{RecordId, Surreal};
+    use surrealdb::Surreal;
 
     /// A simple migration runner for SurrealDB.
-    pub struct MigrationRunner<'a, E: surrealdb::Connection> {
+    ///
+    /// `MigrationRunner` discovers migrations via a `MigrationSource` and
+    /// applies or reverts them against a live `Surreal` connection.
+    ///
+    /// Fields:
+    /// - `db`: reference to a connected `Surreal` client used to execute
+    ///   migration SQL.
+    /// - `source`: the `MigrationSource` implementation used to discover and
+    ///   load migration contents (for example `DiskSource` or
+    ///   `EmbeddedSource`).
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// use surrealdb::Surreal;
+    /// use crate::types::DiskSource;
+    /// use crate::MigrationRunner;
+    ///
+    /// // Connect to the DB (omitted). Create a DiskSource for the `migrations`
+    /// // directory and construct the runner.
+    /// let db: Surreal<_> = /* connect to DB */;
+    /// let src = DiskSource::new("migrations");
+    /// let runner = MigrationRunner::new(&db, src);
+    ///
+    /// // Run pending migrations (async context).
+    /// // runner.up().await.unwrap();
+    /// ```
+    pub struct MigrationRunner<'a, E: surrealdb::Connection, S: MigrationSource> {
+        /// Reference to the connected SurrealDB client used to execute queries.
         pub db: &'a Surreal<E>,
-        pub migrations_dir: Box<Path>,
+        /// Migration discovery/source implementation (filesystem, embedded, etc.).
+        pub source: S,
     }
 
-    impl<'a, E: surrealdb::Connection> MigrationRunner<'a, E> {
-        pub fn new(db: &'a Surreal<E>, migrations_dir: &Path) -> Self {
-            Self {
-                db,
-                migrations_dir: migrations_dir.to_path_buf().into_boxed_path(),
-            }
+    impl<'a, E: surrealdb::Connection, S: MigrationSource> MigrationRunner<'a, E, S> {
+        /// Create a new `MigrationRunner` with the given database client and
+        /// migration `source`.
+        ///
+        /// # Examples
+        ///
+        /// ```rust,ignore
+        /// use surrealdb::Surreal;
+        /// use crate::types::DiskSource;
+        /// use crate::MigrationRunner;
+        ///
+        /// let db: Surreal<_> = /* connect */;
+        /// let src = DiskSource::new("migrations");
+        /// let runner = MigrationRunner::new(&db, src);
+        /// ```
+        pub fn new(db: &'a Surreal<E>, source: S) -> Self {
+            Self { db, source }
         }
 
-        /// Run all pending migrations found in the migrations directory.
+        /// Run all pending migrations discovered by the configured
+        /// `MigrationSource`.
+        ///
+        /// This method ensures the `migrations` table exists, discovers
+        /// available migrations, filters out ones already recorded in the
+        /// database, and executes each migration inside a transaction. On
+        /// success each migration is recorded in the `migrations` table.
+        ///
+        /// # Example
+        ///
+        /// ```rust,ignore
+        /// # async fn run_example(runner: &MigrationRunner<'_, _, _>) -> eyre::Result<()> {
+        /// runner.up().await?;
+        /// # Ok(())
+        /// # }
+        /// ```
         pub async fn up(&self) -> Result<()> {
             self.ensure_migrations_table_exists().await?;
 
-            let migrations = self.discover_migrations().await?;
+            let migrations = self.source.list()?;
 
             let applied = self.get_applied_migrations().await?;
 
@@ -34,12 +90,7 @@ mod migrations_impl {
 
             for migration in migrations_to_run {
                 // If the migration is a directory, look for `up.surql` inside it.
-                let content = if migration.path.is_dir() {
-                    let up_path = migration.path.join("up.surql");
-                    std::fs::read_to_string(&up_path)?
-                } else {
-                    std::fs::read_to_string(&migration.path)?
-                };
+                let content = self.source.get_up(&migration)?;
 
                 let tx_sql = format!("BEGIN TRANSACTION;\n{content}\nCOMMIT TRANSACTION;");
                 let mut response = self
@@ -70,15 +121,25 @@ mod migrations_impl {
             Ok(())
         }
 
-        /// Revert applied migrations in reverse chronological (discovery) order.
-        /// For paired folders this runs `down.surql`. For single-file migrations,
-        /// this looks for a sibling file named `<name>_down.surql` or `down.<name>.surql`
-        /// (basic heuristics) and runs it if present. After successful revert,
-        /// the migration record is removed from the `migrations` table.
+        /// Revert applied migrations in reverse discovery order.
+        ///
+        /// For `Paired` migrations this runs the embedded `down.surql`. For
+        /// up-only file migrations the runner attempts basic heuristics to
+        /// locate a sibling down script. After a successful revert the
+        /// migration record is removed from the `migrations` table.
+        ///
+        /// # Example
+        ///
+        /// ```rust,ignore
+        /// # async fn revert_example(runner: &MigrationRunner<'_, _, _>) -> eyre::Result<()> {
+        /// runner.down().await?;
+        /// # Ok(())
+        /// # }
+        /// ```
         pub async fn down(&self) -> Result<()> {
             self.ensure_migrations_table_exists().await?;
 
-            let migrations = self.discover_migrations().await?;
+            let migrations = self.source.list()?;
             let mut applied = self.get_applied_migrations().await?;
 
             // Preserve discovery order, but revert in reverse (last discovered first)
@@ -95,30 +156,7 @@ mod migrations_impl {
 
             for name in applied {
                 if let Some(migration) = name_to_entry.get(&name) {
-                    let down_content = if migration.path.is_dir() {
-                        let down_path = migration.path.join("down.surql");
-                        if down_path.exists() {
-                            Some(std::fs::read_to_string(&down_path)?)
-                        } else {
-                            None
-                        }
-                    } else {
-                        // try sibling patterns: name_down.surql or name.down.surql
-                        let parent = migration
-                            .path
-                            .parent()
-                            .map(|p| p.to_path_buf())
-                            .unwrap_or_else(|| self.migrations_dir.to_path_buf());
-                        let candidate1 = parent.join(format!("{}_down.surql", migration.name));
-                        let candidate2 = parent.join(format!("{}.down.surql", migration.name));
-                        if candidate1.exists() {
-                            Some(std::fs::read_to_string(&candidate1)?)
-                        } else if candidate2.exists() {
-                            Some(std::fs::read_to_string(&candidate2)?)
-                        } else {
-                            None
-                        }
-                    };
+                    let down_content = self.source.get_down(migration)?;
 
                     if let Some(content) = down_content {
                         let tx_sql = format!("BEGIN TRANSACTION;\n{content}\nCOMMIT TRANSACTION;");
@@ -175,47 +213,6 @@ mod migrations_impl {
             Ok(())
         }
 
-        async fn discover_migrations(&self) -> Result<Vec<Migration>> {
-            let mut entries = std::fs::read_dir(&self.migrations_dir)?
-                .filter_map(|r| r.ok())
-                .filter(|e| {
-                    let p = e.path();
-                    let is_entry = p.is_file() || p.is_dir();
-                    if !is_entry {
-                        return false;
-                    }
-                    if let Some(fname) = p
-                        .file_name()
-                        .and_then(|s| s.to_str().map(|s| s.to_string()))
-                    {
-                        return fname
-                            .chars()
-                            .next()
-                            .map(|c| c.is_ascii_digit())
-                            .unwrap_or(false);
-                    }
-                    false
-                })
-                .collect::<Vec<_>>();
-
-            entries.sort_by_key(|e| e.path());
-
-            let mut out = Vec::new();
-            for entry in entries {
-                let path = entry.path();
-                let name = path
-                    .file_name()
-                    .map(|s| s.to_string_lossy().to_string())
-                    .unwrap_or_default();
-                out.push(Migration {
-                    name,
-                    path: path.into_boxed_path(),
-                });
-            }
-
-            Ok(out)
-        }
-
         /// Retrieve applied migration names from the `migrations` table.
         ///
         /// Pages results in batches to avoid loading very large tables into memory.
@@ -252,18 +249,7 @@ mod migrations_impl {
             Ok(())
         }
     }
-
-    #[derive(Debug, Clone, Serialize, Deserialize)]
-    struct MigrationRecord {
-        pub id: RecordId,
-        pub name: String,
-    }
-
-    #[derive(Debug, Clone)]
-    pub struct Migration {
-        pub name: String,
-        pub path: Box<Path>,
-    }
 }
 
+pub use include_dir::{Dir, include_dir};
 pub use migrations_impl::*;
