@@ -59,7 +59,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: "surreal-migraine-${{ matrix.os.BIN_NAME }}"
-          path: target/release
+          path: |
+            target/release/smg
+            target/release/smg.exe
           if-no-files-found: error
           retention-days: 7
 
