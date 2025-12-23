@@ -88,13 +88,13 @@ jobs:
       matrix:
         os:
           [
-            ubuntu-latest,
-            ubuntu-24.04-arm,
-            macos-15,
-            macos-latest,
-            windows-latest,
+            { OS: ubuntu-latest, BIN_NAME: linux-x86_64 },
+            { OS: ubuntu-24.04-arm, BIN_NAME: linux_aarch64 },
+            { OS: macos-15, BIN_NAME: macos-x86_64 },
+            { OS: macos-latest, BIN_NAME: macos-aarch64 },
+            { OS: windows-latest, BIN_NAME: windows-x86_64 },
           ]
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.os.OS }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -115,7 +115,7 @@ jobs:
       - name: Upload built artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: "surreal-migraine-${{ matrix.os }}"
+          name: "surreal-migraine-${{ matrix.os.BIN_NAME }}"
           path: target/release
           if-no-files-found: error
           retention-days: 7
